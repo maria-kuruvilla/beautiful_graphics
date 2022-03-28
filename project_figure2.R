@@ -8,6 +8,8 @@ library(tidyverse)
 library(tidyquant)
 library(RColorBrewer)
 library(patchwork)
+library(magick)
+library(cowplot)
 
 access_file <- function(file_name){
   out <- tryCatch(
@@ -183,22 +185,24 @@ plot_all_years <- function(plot_empty, species,type,river,file_type){
 species = "Chinook"
 type = "W"
 river = "Dungeness"
-ma_w <- moving_average(species,type,river, ".accdb")
+ma_w_chinook <- moving_average(species,type,river, ".accdb")
 p1_w <- ggplot() + theme_minimal() + 
-  geom_line(ma_w, mapping = aes(StartDate, moving_average), size = 1, color = "#fc8d62") +
+  geom_line(ma_w_chinook, mapping = aes(StartDate, moving_average), size = 1, color = "#fc8d62") +
   xlab("Time of Year") + ylab("Number of fish caught per hour") +
-  scale_y_continuous(expand = c(0,0), limits = c(0,175)) + 
-  scale_x_datetime(expand = c(0,0),date_labels="%b")
+  scale_x_datetime(expand = c(0,0),
+                   limits = c(as.POSIXct("2000-01-02"),as.POSIXct("2001-08-19")), 
+                   date_labels="%b") 
 
 p1_w
 
 species = "Chinook"
 type = "H"
 river = "Dungeness"
-ma_h <- moving_average(species,type,river, ".accdb")
-p1 <- p1_w + geom_line(ma_h, mapping = aes(StartDate, moving_average), size = 1, color = "#66c2a5") +
+ma_h_chinook <- moving_average(species,type,river, ".accdb")
+p1 <- p1_w + geom_line(ma_h_chinook, mapping = aes(StartDate, moving_average), size = 1, color = "#66c2a5") +
   xlab("Time of Year") + ylab("Number of fish caught per hour")+
-  labs(title = paste(species))
+  labs(title = river, subtitle = paste(species))+
+  theme(axis.title.x=element_blank())
 
 
 p1
@@ -207,23 +211,26 @@ p1
 species = "Coho"
 type = "W"
 river = "Dungeness"
-ma_w <- moving_average(species,type,river, ".accdb")
+ma_w_coho <- moving_average(species,type,river, ".accdb")
 p2_w <- ggplot() + theme_minimal() + 
-  geom_line(ma_w, mapping = aes(StartDate, moving_average), size = 1, color = "#fc8d62") +
+  geom_line(ma_w_coho, mapping = aes(StartDate, moving_average), size = 1, color = "#fc8d62") +
   xlab("Time of Year") + ylab("Number of fish caught per hour") +
-  scale_x_datetime(expand = c(0,0),date_labels="%b") +
-  scale_y_continuous(expand = c(0,0), limits = c(0,175)) + 
-  labs(title = paste(species))
+  scale_x_datetime(expand = c(0,0),
+                   limits = c(as.POSIXct("2000-01-02"),as.POSIXct("2001-08-19")), 
+                   date_labels="%b")  + 
+  labs(subtitle = paste(species))+
+  theme(axis.title.y=element_blank(),axis.title.x=element_blank())
 
 p2_w
 
 species = "Coho"
 type = "H"
 river = "Dungeness"
-ma_h <- moving_average(species,type,river, ".accdb")
-p2 <- p2_w + geom_line(ma_h, mapping = aes(StartDate, moving_average), size = 1, color = "#66c2a5") +
+ma_h_coho <- moving_average(species,type,river, ".accdb")
+p2 <- p2_w + geom_line(ma_h_coho, mapping = aes(StartDate, moving_average), size = 1, color = "#66c2a5") +
   xlab("Time of Year") + ylab("Number of fish caught per hour") +
-  labs(title = paste(species))
+  labs(subtitle = paste(species))+
+  theme(axis.title.y=element_blank(),axis.title.x=element_blank())
 
 p2
 
@@ -236,11 +243,15 @@ type = "W"
 river = "Dungeness"
 ma_w_steel <- moving_average(species,type,river, ".accdb")
 p3_w <- ggplot() + theme_minimal() + 
-  geom_line(ma_w_steel, mapping = aes(StartDate, moving_average), size = 1, color = "#fc8d62") +
+  geom_line(ma_w_steel, mapping = aes(StartDate, moving_average, color = "Wild"), size = 1) +
   xlab("Time of Year") + ylab("Number of fish caught per hour") +
-  scale_x_datetime(expand = c(0,0),date_labels="%b") +
-  scale_y_continuous(expand = c(0,0), limits = c(0,175)) + 
-  labs(title = paste(species))
+  scale_x_datetime(expand = c(0,0),
+                   limits = c(as.POSIXct("2000-01-02"),as.POSIXct("2001-08-19")), 
+                   date_labels="%b")  +
+  labs(subtitle = paste(species))+
+  scale_color_manual(name = "Fish type", values = c("Wild" = "#fc8d62", "Hatchery" = "#66c2a5"))+
+  theme(axis.title.y=element_blank(),axis.title.x=element_blank())
+
 
 p3_w
 
@@ -248,9 +259,12 @@ species = "Steelhead"
 type = "H"
 river = "Dungeness"
 ma_h_steel <- moving_average(species,type,river, ".accdb")
-p3 <- p3_w + geom_line(ma_h_steel, mapping = aes(StartDate, moving_average), size = 1, color = "#66c2a5") +
+p3 <- p3_w + geom_line(ma_h_steel, mapping = aes(StartDate, moving_average, color = "Hatchery"), size = 1) +
   xlab("Time of Year") + ylab("Number of fish caught per hour") +
-  labs(title = paste(species))
+  labs(subtitle = paste(species))+
+  scale_color_manual(name = "Fish type", values = c("Wild" = "#fc8d62", "Hatchery" = "#66c2a5"))+
+  theme(axis.title.y=element_blank())
+
 
 p3
 
@@ -267,7 +281,13 @@ ma_w_chinook_n <- moving_average(species,type,river, ".accdb")
 p4_w <- ggplot() + theme_minimal() + 
   geom_line(ma_w_chinook_n, mapping = aes(StartDate, moving_average), size = 1, color = "#fc8d62") +
   xlab("Time of Year") + ylab("Number of fish caught per hour") +
-  scale_x_datetime(expand = c(0,0),date_labels="%b") 
+  scale_x_datetime(expand = c(0,0),
+                   limits = c(as.POSIXct("2000-01-02"),as.POSIXct("2001-08-19")), 
+                   date_labels="%b") +
+  annotate("text", x = as.POSIXct("2000-07-02"), y = 7.2, label = "year 0")+
+  annotate("text", x = as.POSIXct("2001-07-02"), y = 7.2, label = "year 1")+
+  labs(title = "Nisqually")+
+  theme(axis.title.x=element_blank())
 
 p4 <- p4_w 
 p4
@@ -279,7 +299,12 @@ ma_w_coho_n <- moving_average(species,type,river, ".accdb")
 p5 <- ggplot() + theme_minimal() + 
   geom_line(ma_w_coho_n, mapping = aes(StartDate, moving_average), size = 1, color = "#fc8d62") +
   xlab("Time of Year") + ylab("Number of fish caught per hour") +
-  scale_x_datetime(expand = c(0,0),date_labels="%b") 
+  scale_x_datetime(expand = c(0,0),
+                   limits = c(as.POSIXct("2000-01-02"),as.POSIXct("2001-08-19")), 
+                   date_labels="%b")  +
+  annotate("text", x = as.POSIXct("2000-07-02"), y = 7.2, label = "year 0")+
+  annotate("text", x = as.POSIXct("2001-07-02"), y = 7.2, label = "year 1")+
+  theme(axis.title.y=element_blank(),axis.title.x=element_blank())
 
 p5
 
@@ -288,14 +313,45 @@ type = "W"
 river = "Nisqually"
 ma_w_steel_n <- moving_average(species,type,river, ".accdb")
 p6 <- ggplot() + theme_minimal() + 
-  geom_line(ma_w_steel_n, mapping = aes(StartDate, moving_average), size = 1, color = "#fc8d62") +
+  geom_line(ma_w_steel_n, mapping = aes(StartDate, moving_average, color = "Wild"), size = 1) +
   xlab("Time of Year") + ylab("Number of fish caught per hour") +
-  scale_x_datetime(expand = c(0,0),date_labels="%b") 
+  scale_x_datetime(expand = c(0,0),
+                   limits = c(as.POSIXct("2000-01-02"),as.POSIXct("2001-08-19")), 
+                   date_labels="%b")  +
+  scale_color_manual(name = "Fish type", values = c("Wild" = "#fc8d62", "Hatchery" = "#66c2a5"))+
+  theme(axis.title.y=element_blank(),axis.title.x=element_blank())
 
 p6
 
 d <- p4+p5+p6
-d
+n/d + plot_layout(guides = 'collect') +
+  draw_image(image=here("Documents","data","beautiful_graphics","Chinook_salmon_female.jpg"), x = 0.55, y = 0.55, 
+                                                 width=0.4, height=0.4)
 
-n/d
+fig2 <- n/d
+file_name <- "time_of_year.pdf"
+ggsave(here("Documents","output","pied_piper",
+            file_name), width=12, height=7)
 
+
+p1_pic <- ggdraw(p1) + draw_image(image=here("Documents","data","beautiful_graphics","Chinook_salmon_female.png"), x = 0.36, y = 0.55, 
+                width=0.4, height=0.4)
+p2_pic <- ggdraw(p2) + draw_image(image=here("Documents","data","beautiful_graphics","coho_salmon_bright.png"), x = 0.35, y = 0.55, 
+                        width=0.4, height=0.4)
+
+p3_pic <- ggdraw(p3) + draw_image(image=here("Documents","data","beautiful_graphics","Steelhead_hen_big.png"), x = 0.35, y = 0.55, 
+                        width=0.4, height=0.4)
+
+fig <- (p1_pic + p2_pic + p3_pic)/(p4+p5+p6) + plot_layout(guides = 'collect')
+fig_wo_pic <- n/d
+
+fig_w_pic<-ggdraw(fig_wo_pic) + draw_image(image=here("Documents","data","beautiful_graphics","Chinook_salmon_female.png"), x = 0.12, y = 0.88, 
+                                     width=0.15, height=0.15) + 
+  draw_image(image=here("Documents","data","beautiful_graphics","coho_salmon_bright.png"), x = 0.4, y = 0.88, 
+             width=0.15, height=0.15)+ 
+  draw_image(image=here("Documents","data","beautiful_graphics","Steelhead_hen_big.png"), x = 0.7, y = 0.88, 
+                                                  width=0.15, height=0.15)
+fig_w_pic
+file_name <- "time_of_year.png"
+ggsave(here("Documents","output","pied_piper",
+            file_name), width=12, height=7)
